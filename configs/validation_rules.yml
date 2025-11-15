@@ -1,0 +1,28 @@
+# configs/validation_rules.yml
+# Reglas de validación para el módulo validator.py
+
+# 1. Campos obligatorios
+required:
+  - title
+  - created_at
+  - external_link
+  - rtype_id
+  - entity
+
+# 2. Tipos de datos
+types:
+  title: str
+  created_at: date
+  update_at: date
+  is_active: bool
+  gtype: str
+  entity: str
+  external_link: str
+  rtype_id: int
+  summary: str
+  classification_id: int
+
+# 3. Formatos Regex
+regex:
+  external_link: "^https?://[^\s]+"
+  gtype: "^(link|file|)$" # Permite 'link', 'file' o vacío/None
