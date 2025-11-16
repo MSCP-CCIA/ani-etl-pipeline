@@ -1,5 +1,3 @@
-# dags/ani_etl_dag.py
-
 import pandas as pd
 import logging
 import os
@@ -8,25 +6,18 @@ from typing import Dict, Any, List
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.exceptions import AirflowSkipException
-
-# Importar funciones de los módulos
 from extraction.scraper import extract_data
 from validation.validator import validate_data, load_rules
 from persistence.writer import write_data, DatabaseManager
 
 log = logging.getLogger(__name__)
 
-# --- CONFIGURACIÓN DEL DAG (Leída desde .env) ---
 DAG_ID = os.environ.get("AIRFLOW_DAG_ID", "ani_etl_pipeline")
 DAG_SCHEDULE = os.environ.get("AIRFLOW_DAG_SCHEDULE", "@daily")
 ENTITY_VALUE = os.environ.get("ANI_ENTITY_VALUE", "Agencia Nacional de Infraestructura")
 VALIDATION_CONFIG_PATH = os.environ.get("VALIDATION_CONFIG_PATH", "/opt/airflow/configs/validation_rules.yml")
 TEMP_DATA_DIR = "/tmp"
 
-
-# --- FIN DE CONFIGURACIÓN ---
-
-# --- Funciones Helper para manejo de archivos ---
 def get_temp_filepath(task_id: str, run_id: str) -> str:
     """Genera una ruta de archivo temporal única por ejecución."""
     filename = f"{task_id}_{run_id.replace(':', '_')}.parquet"
@@ -135,15 +126,11 @@ def ani_etl_pipeline():
 
         return result
 
-    # --- Definición de la Secuencia del DAG [cite: 29] ---
     schema_task = task_ensure_schema()
     extracted_fp = task_extract()
     validated_fp = task_validate(extracted_fp)
     write_summary = task_write(validated_fp, extracted_fp)
 
-    # El flujo de datos (E-V-W) depende de que el esquema esté listo.
     schema_task >> extracted_fp >> validated_fp >> write_summary
 
-
-# Instanciar el DAG
 ani_etl_pipeline()

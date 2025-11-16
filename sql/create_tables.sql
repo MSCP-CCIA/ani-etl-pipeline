@@ -1,6 +1,3 @@
--- sql/create_tables.sql
--- Esquema DDL para crear tablas si no existen
-
 CREATE TABLE IF NOT EXISTS regulations (
     id SERIAL PRIMARY KEY,
     created_at DATE,
@@ -13,8 +10,6 @@ CREATE TABLE IF NOT EXISTS regulations (
     rtype_id INTEGER,
     summary TEXT,
     classification_id INTEGER,
-
-    -- Restricción de idempotencia (basada en la lógica de la lambda)
     UNIQUE (title, created_at, external_link)
 );
 

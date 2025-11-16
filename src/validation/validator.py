@@ -1,5 +1,3 @@
-# /src/validation/validator.py
-
 import pandas as pd
 import yaml
 import logging
@@ -36,11 +34,11 @@ def create_dynamic_validator(rules: Dict[str, Any]) -> Type[BaseModel]:
     type_map = {'str': (Optional[str], None), 'int': (Optional[int], None), 'bool': (Optional[bool], None),
                 'date': (Optional[pd.Timestamp], None)}
 
-    # 1. Definir tipos de campos [cite: 23]
+    # 1. Definir tipos de campos 
     for field, field_type in rules.get('types', {}).items():
         field_definitions[field] = type_map.get(field_type, (Optional[Any], None))
 
-    # 2. Definir validadores de Regex [cite: 23]
+    # 2. Definir validadores de Regex
     for field, pattern in rules.get('regex', {}).items():
         def create_regex_validator(pattern=pattern):
             @field_validator(field, check_fields=False)
@@ -66,20 +64,17 @@ def validate_data(df: pd.DataFrame, rules: Dict[str, Any]) -> pd.DataFrame:
 
     original_count = len(df)
     log.info(f"Iniciando validación de {original_count} registros...")
-
     DynamicModel = create_dynamic_validator(rules)
     required_fields = rules.get('required', [])
     validated_rows: List[Dict[str, Any]] = []
     discarded_row_count = 0
 
-    # Coerción de tipos comunes antes de la validación
     if 'created_at' in df.columns: df['created_at'] = pd.to_datetime(df['created_at'], errors='coerce')
     if 'rtype_id' in df.columns: df['rtype_id'] = pd.to_numeric(df['rtype_id'], errors='coerce')
 
     records = df.to_dict('records')
 
     for i, row in enumerate(records):
-        # 1. Regla: Descartar fila si campos obligatorios fallan [cite: 26]
         missing_required = [field for field in required_fields if pd.isna(row.get(field))]
         if missing_required:
             log.warning(
@@ -87,12 +82,10 @@ def validate_data(df: pd.DataFrame, rules: Dict[str, Any]) -> pd.DataFrame:
             discarded_row_count += 1
             continue
 
-        # 2. Regla: Validar tipos y regex [cite: 23, 25]
         try:
             validated_model = DynamicModel.model_validate(row)
             validated_rows.append(validated_model.model_dump())
         except ValidationError as e:
-            # 3. Regla: Si un campo no cumple (y no es obligatorio), setear a NULL [cite: 25]
             log.warning(f"Errores de validación en Fila {i} (Titulo: {row.get('title')}). Anulando campos.")
             validated_row_data = row.copy()
             for error in e.errors():

@@ -1,5 +1,3 @@
-# /src/extraction/scraper.py
-
 import requests
 import logging
 import re
@@ -12,7 +10,6 @@ import json
 
 log = logging.getLogger(__name__)
 
-# --- CONFIGURACIÓN LEÍDA DE VARIABLES DE ENTORNO ---
 try:
     URL_BASE = os.environ["ANI_SCRAPER_URL_BASE"]
     ENTITY_VALUE = os.environ["ANI_ENTITY_VALUE"]
@@ -29,17 +26,10 @@ except json.JSONDecodeError as e:
 FIXED_CLASSIFICATION_ID = int(os.environ.get("ANI_FIXED_CLASSIFICATION_ID", 13))
 DEFAULT_RTYPE_ID = int(os.environ.get("ANI_DEFAULT_RTYPE_ID", 14))
 
-
-# --- FIN DE CONFIGURACIÓN ---
-
-# ▼▼▼ LÓGICA DE SCRAPING ORIGINAL (INTACTA)  ▼▼▼
-# (Funciones copiadas de lambda.py, solo 'print' cambiado por 'log')
-
 def clean_quotes(text: Optional[str]) -> Optional[str]:
     """Elimina varios tipos de comillas y espacios extra de un texto."""
     if not text:
         return text
-    # ... (lógica de 'clean_quotes' de lambda.py)...
     quotes_map = {
         '\u201C': '', '\u2018': '', '\u2019': '', '\u00AB': '', '\u00BB': '',
         '\u201E': '', '\u201A': '', '\u2039': '', '\u203A': '', '"': '',
@@ -66,7 +56,6 @@ def get_rtype_id(title: str) -> int:
 
 def is_valid_created_at(created_at_value: Any) -> bool:
     """Valida el campo created_at."""
-    # ... (lógica de 'is_valid_created_at' de lambda.py)...
     if not created_at_value:
         return False
     if isinstance(created_at_value, str):
@@ -78,7 +67,6 @@ def is_valid_created_at(created_at_value: Any) -> bool:
 
 def extract_title_and_link(row: Any, norma_data: Dict[str, Any], verbose: bool, row_num: int) -> bool:
     """Extrae título y enlace. Contiene la lógica de omisión original. """
-    # ... (lógica de 'extract_title_and_link' de lambda.py)...
     title_cell = row.find('td', class_='views-field views-field-title')
     if not title_cell:
         if verbose: log.warning(f"No se encontró celda de título en la fila {row_num}. Saltando.")
@@ -106,7 +94,6 @@ def extract_title_and_link(row: Any, norma_data: Dict[str, Any], verbose: bool, 
 
 def extract_summary(row: Any, norma_data: Dict[str, Any]):
     """Extrae el resumen/descripción de una fila."""
-    # ... (lógica de 'extract_summary' de lambda.py)...
     summary_cell = row.find('td', class_='views-field views-field-body')
     if summary_cell:
         raw_summary = summary_cell.get_text(strip=True)
@@ -119,7 +106,6 @@ def extract_summary(row: Any, norma_data: Dict[str, Any]):
 
 def extract_creation_date(row: Any, norma_data: Dict[str, Any], verbose: bool, row_num: int) -> bool:
     """Extrae la fecha de creación. Contiene la lógica de validación/omisión original. """
-    # ... (lógica de 'extract_creation_date' de lambda.py)...
     fecha_cell = row.find('td', class_='views-field views-field-field-fecha--1')
     if fecha_cell:
         fecha_span = fecha_cell.find('span', class_='date-display-single')
@@ -147,7 +133,6 @@ def extract_creation_date(row: Any, norma_data: Dict[str, Any], verbose: bool, r
 
 def scrape_page(page_num: int, verbose: bool = False) -> List[Dict[str, Any]]:
     """Scrapea una página específica de ANI."""
-    # ... (lógica de 'scrape_page' de lambda.py)...
     if page_num == 0:
         page_url = URL_BASE
     else:
@@ -187,9 +172,6 @@ def scrape_page(page_num: int, verbose: bool = False) -> List[Dict[str, Any]]:
     except Exception as e:
         log.error(f"Error procesando página {page_num}: {e}")
         return []
-
-
-# ▲▲▲ FIN LÓGICA DE SCRAPING ORIGINAL ▲▲▲
 
 def extract_data(num_pages_to_scrape: int) -> pd.DataFrame:
     """Función principal de extracción que el DAG llamará."""

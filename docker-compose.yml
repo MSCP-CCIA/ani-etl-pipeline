@@ -1,10 +1,10 @@
 version: '3.7'
 
 x-airflow-base: &airflow-base
-  build: .                             # construye con nuestro Dockerfile corregido
+  build: .
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
   env_file:
-    - .env                             # carga GEMINI_API_KEY (y cualquier otra var. secreta)
+    - .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow

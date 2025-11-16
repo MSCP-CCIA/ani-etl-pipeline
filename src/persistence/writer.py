@@ -1,5 +1,3 @@
-# /src/persistence/writer.py
-
 import pandas as pd
 import psycopg2
 import psycopg2.extras
@@ -9,7 +7,6 @@ from typing import Dict, Any, List, Tuple, Optional
 
 log = logging.getLogger(__name__)
 
-# --- CONFIGURACIÓN DE PERSISTENCIA (Leída desde .env) ---
 DB_REGULATIONS_TABLE_NAME = os.environ.get("DB_REGULATIONS_TABLE_NAME", "regulations")
 DB_COMPONENTS_TABLE_NAME = os.environ.get("DB_COMPONENTS_TABLE_NAME", "regulations_component")
 DEFAULT_COMPONENT_ID = int(os.environ.get("DEFAULT_COMPONENT_ID", 7))
@@ -17,7 +14,7 @@ DB_SCHEMA_FILE_PATH = os.environ.get("DB_SCHEMA_FILE_PATH", "/opt/airflow/sql/cr
 
 
 class DatabaseManager:
-    """Maneja la conexión a la BD de Airflow [cite: 30, 50] y asegura el esquema."""
+    """Maneja la conexión a la BD de Airflow y asegura el esquema."""
 
     def __init__(self):
         self.connection = None
@@ -94,12 +91,9 @@ class DatabaseManager:
             raise
 
 
-# ▼▼▼ LÓGICA DE IDEMPOTENCIA ORIGINAL (INTACTA)  ▼▼▼
-# (Funciones copiadas de lambda.py, solo 'print' cambiado por 'log'
-# y nombres de tablas/IDs leídos desde .env)
 
 def insert_regulations_component(db_manager: DatabaseManager, new_ids: List[int]) -> Tuple[int, str]:
-    """Inserta componentes. Lógica original de lambda.py."""
+    """Inserto componente. Lógica original de lambda.py."""
     if not new_ids:
         return 0, "No new regulation IDs provided"
     try:
@@ -116,10 +110,9 @@ def insert_regulations_component(db_manager: DatabaseManager, new_ids: List[int]
 
 
 def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: str) -> Tuple[int, str]:
-    """Inserta nuevos registros evitando duplicados. Lógica original de lambda.py[cite: 2, 33]."""
+    """Inserta nuevos registros evitando duplicados. Lógica original de lambda.py."""
     regulations_table_name = DB_REGULATIONS_TABLE_NAME
     try:
-        # 1. OBTENER REGISTROS EXISTENTES
         query = f"SELECT title, created_at, entity, COALESCE(external_link, '') as external_link FROM {regulations_table_name} WHERE entity = %s"
         existing_records = db_manager.execute_query(query, (entity,))
         db_df = pd.DataFrame(existing_records, columns=['title', 'created_at', 'entity',
@@ -127,12 +120,10 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
             columns=['title', 'created_at', 'entity', 'external_link'])
         log.info(f"Registros existentes en BD para {entity}: {len(db_df)}")
 
-        # 2. PREPARAR DATAFRAME
         entity_df = df[df['entity'] == entity].copy()
         if entity_df.empty: return 0, f"No records found for entity {entity}"
         log.info(f"Registros a procesar para {entity}: {len(entity_df)}")
 
-        # 3. NORMALIZAR DATOS
         if not db_df.empty:
             db_df['created_at'] = db_df['created_at'].astype(str)
             db_df['external_link'] = db_df['external_link'].fillna('').astype(str)
@@ -141,7 +132,6 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
         entity_df['external_link'] = entity_df['external_link'].fillna('').astype(str)
         entity_df['title'] = entity_df['title'].astype(str).str.strip()
 
-        # 4. IDENTIFICAR DUPLICADOS
         log.info("=== INICIANDO VALIDACIÓN DE DUPLICADOS OPTIMIZADA ===")
         if db_df.empty:
             new_records = entity_df.copy()
@@ -157,7 +147,6 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
             duplicates_found = len(entity_df) - len(new_records)
             if duplicates_found > 0: log.info(f"Duplicados encontrados: {duplicates_found}")
 
-        # 5. REMOVER DUPLICADOS INTERNOS
         len_before_internal_dedup = len(new_records)
         new_records = new_records.drop_duplicates(subset=['title', 'created_at', 'external_link'], keep='first')
         internal_duplicates = len_before_internal_dedup - len(new_records)
@@ -167,13 +156,11 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
         if new_records.empty:
             return 0, f"No new records found for entity {entity} after duplicate validation"
 
-        # 6. LIMPIAR DATAFRAME
         db_columns = ['created_at', 'update_at', 'is_active', 'title', 'gtype', 'entity', 'external_link', 'rtype_id',
                       'summary', 'classification_id']
         df_to_insert = new_records[[col for col in db_columns if col in new_records.columns]]
         log.info(f"Registros finales a insertar: {len(df_to_insert)}")
 
-        # 7. INSERTAR NUEVOS REGISTROS
         total_rows_processed = 0
         try:
             total_rows_processed = db_manager.bulk_insert(df_to_insert, regulations_table_name)
@@ -187,14 +174,12 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
             else:
                 raise insert_error
 
-        # 8. OBTENER IDS
         log.info("=== OBTENIENDO IDS DE REGISTROS INSERTADOS ===")
         new_ids_query = f"SELECT id FROM {regulations_table_name} WHERE entity = %s ORDER BY id DESC LIMIT %s"
         new_ids_result = db_manager.execute_query(new_ids_query, (entity, total_rows_processed))
         new_ids = [row[0] for row in new_ids_result]
         log.info(f"IDs obtenidos: {len(new_ids)}")
 
-        # 9. INSERTAR COMPONENTES
         component_message = ""
         if new_ids:
             try:
@@ -203,7 +188,6 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
                 log.error(f"Error insertando componentes: {comp_error}", exc_info=True)
                 component_message = f"Error inserting components: {str(comp_error)}"
 
-        # 10. MENSAJE FINAL
         stats = f"Processed: {len(entity_df)} | Existing: {len(db_df)} | Duplicates skipped: {total_duplicates} | New inserted: {total_rows_processed}"
         message = f"Entity {entity}: {stats}. {component_message}"
         log.info(f"=== RESULTADO FINAL ===\n{message}")
@@ -216,7 +200,6 @@ def insert_new_records(db_manager: DatabaseManager, df: pd.DataFrame, entity: st
         return 0, error_msg
 
 
-# ▲▲▲ FIN LÓGICA DE IDEMPOTENCIA ORIGINAL ▲▲▲
 
 def write_data(df: pd.DataFrame, entity: str) -> Dict[str, Any]:
     """Función principal de escritura que el DAG llamará."""

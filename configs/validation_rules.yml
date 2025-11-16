@@ -1,6 +1,4 @@
-# configs/validation_rules.yml
 # Reglas de validación para el módulo validator.py
-
 # 1. Campos obligatorios
 required:
   - title
@@ -25,4 +23,4 @@ types:
 # 3. Formatos Regex
 regex:
   external_link: "^https?://[^\\s]+"
-  gtype: "^(link|file|)$" # Permite 'link', 'file' o vacío/None
+  gtype: "^(link|file|)$"
