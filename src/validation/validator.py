@@ -4,7 +4,7 @@ import pandas as pd
 import yaml
 import logging
 import re
-from pydantic import BaseModel, create_model, field_validator, ValidationError
+from pydantic import BaseModel, create_model, field_validator, ValidationError, ConfigDict
 from typing import Dict, Any, List, Optional, Type
 
 log = logging.getLogger(__name__)
@@ -27,6 +27,10 @@ def load_rules(config_path: str) -> Dict[str, Any]:
 
 def create_dynamic_validator(rules: Dict[str, Any]) -> Type[BaseModel]:
     """Crea un modelo Pydantic dinámicamente basado en las reglas del YAML."""
+
+    class ArbitraryConfig:
+        arbitrary_types_allowed = True
+
     field_definitions: Dict[str, Any] = {}
     validators: Dict[str, Any] = {}
     type_map = {'str': (Optional[str], None), 'int': (Optional[int], None), 'bool': (Optional[bool], None),
@@ -51,7 +55,7 @@ def create_dynamic_validator(rules: Dict[str, Any]) -> Type[BaseModel]:
 
         validators[f"validate_regex_{field}"] = create_regex_validator()
 
-    return create_model('DynamicRegulationModel', **field_definitions, __validators__=validators)
+    return create_model('DynamicRegulationModel',__config__=ConfigDict(arbitrary_types_allowed=True),**field_definitions,__validators__=validators)
 
 
 def validate_data(df: pd.DataFrame, rules: Dict[str, Any]) -> pd.DataFrame:

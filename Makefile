@@ -5,7 +5,7 @@ down-airflow:
 
 reset-airflow: down-airflow
 	sudo chown -R $$(id -u):$$(id -g) logs dags plugins || true
-	rm -rf logs/* dags/* plugins/*
+	rm -rf logs/* plugins/*
 	mkdir -p logs dags plugins
 	chmod 777 logs dags plugins
 

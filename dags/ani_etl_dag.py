@@ -81,7 +81,7 @@ def ani_etl_pipeline():
     def task_extract(**kwargs) -> str:
         """Tarea de Extracción: Scrapea datos y los guarda en un archivo Parquet."""
         run_id = kwargs['dag_run'].run_id
-        num_pages = kwargs['params'].get('num_pages')
+        num_pages = kwargs['params'].get('num_pages', 9)
         log.info(f"Iniciando tarea de extracción para {num_pages} páginas.")
 
         df = extract_data(num_pages_to_scrape=num_pages)

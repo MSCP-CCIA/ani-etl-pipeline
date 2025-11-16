@@ -24,5 +24,5 @@ types:
 
 # 3. Formatos Regex
 regex:
-  external_link: "^https?://[^\s]+"
+  external_link: "^https?://[^\\s]+"
   gtype: "^(link|file|)$" # Permite 'link', 'file' o vacío/None
