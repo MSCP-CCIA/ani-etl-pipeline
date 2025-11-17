@@ -5,7 +5,24 @@
 Este proyecto implementa un pipeline ETL orquestado con Apache Airflow para la extracción, validación y carga de las normativas de la Agencia Nacional de Infraestructura (ANI).
 
 El sistema refactoriza un script monolítico de AWS Lambda a un pipeline de datos modular, idempotente y configurable, ejecutado íntegramente sobre Docker.
+## Configuración de Desarrollo Local
 
+Para el desarrollo local, inspección de código o ejecución de scripts individuales fuera de Docker, se recomienda configurar un entorno virtual.
+
+1.  **Crear el entorno virtual:**
+    ```bash
+    python3 -m venv .venv
+    ```
+
+2.  **Activar el entorno:**
+    ```bash
+    source .venv/bin/activate
+    ```
+
+3.  **Instalar dependencias:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 ## Despliegue y Ejecución
 
 Todo el entorno se gestiona con `make` y `docker-compose`.
